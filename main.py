@@ -1,5 +1,6 @@
 import pygame
 from queue import PriorityQueue
+import math
 
 # 初始化 Pygame
 pygame.init()
@@ -27,7 +28,19 @@ grid = [[0 for _ in range(COLS)] for _ in range(ROWS)]
 # 按钮定义
 button_font = pygame.font.SysFont(None, 30)
 button_text = button_font.render('Finished', True, BLACK)
-button_rect = button_text.get_rect(center=(WIDTH - 50, HEIGHT / 2))
+button_rect = button_text.get_rect(center=(WIDTH - 50, HEIGHT / 2 - 100))
+
+button_euclidean_text = button_font.render('Euclidean', True, BLACK)
+button_euclidean_rect = button_euclidean_text.get_rect(center=(WIDTH - 50, HEIGHT / 2 - 50))
+
+button_manhattan_text = button_font.render('Manhattan', True, BLACK)
+button_manhattan_rect = button_manhattan_text.get_rect(center=(WIDTH - 50, HEIGHT / 2))
+
+button_custom_text = button_font.render('Custom', True, BLACK)
+button_custom_rect = button_custom_text.get_rect(center=(WIDTH - 50, HEIGHT / 2 + 50))
+
+selected_heuristic = None  # 默认不选中任何启发式函数
+selected_button_rect = None  # 用于跟踪选中按钮的矩形
 
 class Node:
     def __init__(self, position, parent=None):
@@ -46,13 +59,24 @@ class Node:
     def __lt__(self, other):
         return self.f < other.f
 
+# 定义欧氏距离的启发式函数
+def euclidean_heuristic(a, b):
+    x1, y1 = a
+    x2, y2 = b
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+# 定义自定义的启发式函数
+def custom_heuristic(a, b):
+    x1, y1 = a
+    x2, y2 = b
+    return (x1 - x2) ** 2 + (y1 - y2) ** 2  # 对角线距离的平方
 
 def heuristic(a, b):
     x1, y1 = a
     x2, y2 = b
     return abs(x1 - x2) + abs(y1 - y2)
 
-def astar(grid, start, end):
+def astar(grid, start, end, heuristic_function):
     start_node = Node(start)
     end_node = Node(end)
 
@@ -61,7 +85,7 @@ def astar(grid, start, end):
     came_from = {}
 
     g_score = {start_node: 0}
-    f_score = {start_node: heuristic(start_node.position, end_node.position)}
+    f_score = {start_node: heuristic_function(start_node.position, end_node.position)}
 
     open_set_hash = {start_node}
 
@@ -86,7 +110,7 @@ def astar(grid, start, end):
                 if temp_g_score < g_score.get(neighbor, float("inf")):
                     came_from[neighbor] = current_node
                     g_score[neighbor] = temp_g_score
-                    f_score[neighbor] = temp_g_score + heuristic(node_position, end_node.position)
+                    f_score[neighbor] = temp_g_score + heuristic_function(node_position, end_node.position)
                     if neighbor not in open_set_hash:
                         open_set.put((f_score[neighbor], neighbor))
                         open_set_hash.add(neighbor)
@@ -111,6 +135,14 @@ def draw_grid():
 def draw_sidebar():
     pygame.draw.rect(WIN, WHITE, (WIDTH - 100, 0, 100, HEIGHT))
     WIN.blit(button_text, button_rect)
+    WIN.blit(button_euclidean_text, button_euclidean_rect)
+    WIN.blit(button_manhattan_text, button_manhattan_rect)
+    WIN.blit(button_custom_text, button_custom_rect)
+
+    # 绘制选中按钮的阴影标识
+    if selected_button_rect:
+        shadow_rect = pygame.Rect(selected_button_rect.x - 2, selected_button_rect.y - 2, selected_button_rect.width + 4, selected_button_rect.height + 4)
+        pygame.draw.rect(WIN, GRAY, shadow_rect)
 
 def draw():
     WIN.fill(BLACK)
@@ -134,7 +166,16 @@ def main():
                 if button_rect.collidepoint(pos):
                     map_setup_done = True
                     if start and end:
-                        path = astar(grid, start, end)
+                        path = astar(grid, start, end, selected_heuristic)
+                elif button_euclidean_rect.collidepoint(pos):
+                    selected_heuristic = euclidean_heuristic
+                    selected_button_rect = button_euclidean_rect
+                elif button_manhattan_rect.collidepoint(pos):
+                    selected_heuristic = heuristic
+                    selected_button_rect = button_manhattan_rect
+                elif button_custom_rect.collidepoint(pos):
+                    selected_heuristic = custom_heuristic
+                    selected_button_rect = button_custom_rect
                 else:
                     row, col = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
                     if not start and grid[row][col] == 0:
@@ -151,7 +192,7 @@ def main():
                 if position != start and position != end:
                     grid[position[0]][position[1]] = 4
                     draw()
-                    pygame.time.delay(1000)  # 1格/s 的速度显示路径
+                    pygame.time.delay(500)  # 1格/s 的速度显示路径
 
     pygame.quit()
 
