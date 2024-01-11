@@ -41,6 +41,6 @@ pip install PyQt5
 
 ### Contact the Author
 - **Author:** Krona
-- **Email:** [krona126139@gmail.com]
+- **Email:** [927255120@qq.com]
 
 Feel free to contact the author for more information or to provide feedback.
