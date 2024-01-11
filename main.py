@@ -1,14 +1,16 @@
 import sys
 import math
 import random
+import time
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QComboBox, QLabel
-
+from PyQt5.QtGui import QFont
+universal_text=""
 # 定义常量
-WIDTH, HEIGHT = 950, 900  # 调整窗口大小
-MAP_ROWS, MAP_COLS = 20, 20  # 初始地图大小
-SQUARE_SIZE = 40
+WIDTH, HEIGHT = 1300, 900  # 调整窗口大小
+MAP_ROWS, MAP_COLS =40,40#初始地图大小
+SQUARE_SIZE = 25
 WHITE = QColor(255, 255, 255)
 BLACK = QColor(0, 0, 0)
 RED = QColor(255, 0, 0)
@@ -37,6 +39,9 @@ class AStarVisualization(QWidget):
         self.initUI()
 
     def initUI(self):
+        font = QFont("Times New Roman", 16)
+        promt_font = QFont("Times New Roman", 18)
+
         self.setWindowTitle("A* Pathfinding Visualization")
         self.setFixedSize(WIDTH, HEIGHT)  # 调整窗口大小
 
@@ -67,14 +72,48 @@ class AStarVisualization(QWidget):
         self.button_start = QPushButton("Start")
         self.button_start.clicked.connect(self.findPath)
         self.button_start.setFixedSize(80, 30)
+        self.button_start.setFont(font)
+        def findPath(self):
+            if self.start_node and self.end_node:
+                open_list = [self.start_node]
+                closed_list = []
 
+                start_time = time.time()  # 获取开始时间
+
+                while open_list:
+                    current_node = min(open_list, key=lambda node: node.f)
+                    open_list.remove(current_node)
+                    closed_list.append(current_node)
+
+                    if current_node == self.end_node:
+                        self.path = []
+                        while current_node:
+                            self.path.append(current_node)
+                            current_node = current_node.parent
+                        break
+
+                    neighbors = self.getNeighbors(current_node)
+                    for neighbor in neighbors:
+                        if neighbor in closed_list:
+                            continue
+
+                        tentative_g = current_node.g + 1
+                        if neighbor not in open_list or tentative_g < neighbor.g:
+                            neighbor.g = tentative_g
+                            neighbor.h = self.heuristic(neighbor, self.end_node)  # 使用所选的启发函数
+                            neighbor.f = neighbor.g + neighbor.h
+                            neighbor.parent = current_node
+                            if neighbor not in open_list:
+                                open_list.append(neighbor)
         self.button_clear = QPushButton("Clear")
         self.button_clear.clicked.connect(self.clearGrid)
         self.button_clear.setFixedSize(80, 30)
+        self.button_clear.setFont(font)
 
         self.button_random = QPushButton("Random")
         self.button_random.clicked.connect(self.randomSetup)
         self.button_random.setFixedSize(80, 30)
+        self.button_random.setFont(font)
 
         self.button_layout.addWidget(self.button_start)
         self.button_layout.addWidget(self.button_clear)
@@ -83,6 +122,8 @@ class AStarVisualization(QWidget):
         # 添加下拉选项和标签到侧边栏
         self.combo_box_label = QLabel("Choose Heuristic:")
         self.combo_box = QComboBox()
+        self.combo_box_label.setFont(font)
+        self.combo_box.setFont(font)
         self.combo_box.addItem("Euclidean Distance")
         self.combo_box.addItem("Manhattan Distance")
 
@@ -93,18 +134,28 @@ class AStarVisualization(QWidget):
         self.side_layout.addWidget(self.combo_box)
         self.side_layout.addWidget(self.button_widget)  # 将按钮部件添加到侧边栏
 
+        # 创建标签用于显示提示信息
+        self.info_label = QLabel("")
+        self.info_label.setAlignment(Qt.AlignLeft)
+        self.info_label.setFixedSize(600, 900)
+        self.info_label.setFont(promt_font)
+
+        self.side_layout.addWidget(self.info_label)  # 将提示信息标签添加到侧边栏
+
         self.layout.addWidget(self.map_widget)  # 放置地图部件在左侧
         self.layout.addWidget(self.side_bar)  # 放置侧边栏在右侧
 
         self.setLayout(self.layout)
 
         # 设置侧边栏的位置
-        self.side_bar.setMaximumWidth(150)  # 设置最大宽度，可以根据需要调整
+        self.side_bar.setMaximumWidth(250)  # 设置最大宽度，可以根据需要调整
 
     def findPath(self):
         if self.start_node and self.end_node:
             open_list = [self.start_node]
             closed_list = []
+
+            start_time = time.time()  # 获取开始时间
 
             while open_list:
                 current_node = min(open_list, key=lambda node: node.f)
@@ -132,7 +183,12 @@ class AStarVisualization(QWidget):
                         if neighbor not in open_list:
                             open_list.append(neighbor)
 
+            end_time = time.time()  # 获取结束时间
+            elapsed_time =(end_time - start_time)*1000000
+
             self.update()
+
+            self.showInfo("Pathfinding complete.\nTime taken: {:.1f} us.".format(elapsed_time))
 
     def clearGrid(self):
         self.grid = [[Node(row, col) for col in range(MAP_COLS)] for row in range(MAP_ROWS)]
@@ -141,6 +197,7 @@ class AStarVisualization(QWidget):
         self.path = []
         self.draw_state = 0
         self.update()
+        self.showInfo("Grid cleared.")
 
     def randomSetup(self):
         # 清除现有的起点、终点和障碍
@@ -205,6 +262,7 @@ class AStarVisualization(QWidget):
                 break
 
         self.update()
+        self.showInfo("Random setup completed.\n Ready to find path.")
 
     def getNeighbors(self, node):
         neighbors = []
@@ -272,13 +330,19 @@ class AStarVisualization(QWidget):
                 painter.drawRect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
 
         # 绘制路径
-        for node in self.path:
+        for node in self.path[1:-1]:
             painter.fillRect(node.col * SQUARE_SIZE, node.row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE, YELLOW)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Space:
             if self.draw_state == 2:  # 切换到绘制空格状态
                 self.draw_state = 0
+
+    def showInfo(self, text):
+        global  universal_text
+        universal_text+="\n"+text
+        self.info_label.setText(universal_text)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
