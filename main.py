@@ -8,15 +8,16 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QVB
 from PyQt5.QtGui import QFont
 universal_text=""
 # 定义常量
-WIDTH, HEIGHT = 1300, 900  # 调整窗口大小
-MAP_ROWS, MAP_COLS =40,40#初始地图大小
+WIDTH, HEIGHT = 1250, 900  # 调整窗口大小
+MAP_ROWS, MAP_COLS =35,35#初始地图大小
 SQUARE_SIZE = 25
 WHITE = QColor(255, 255, 255)
 BLACK = QColor(0, 0, 0)
 RED = QColor(255, 0, 0)
 BLUE = QColor(0, 0, 255)
 YELLOW = QColor(255, 255, 0)
-
+GREEN = QColor(0, 255, 0)
+heuristic_name="euclideanDistance"
 class Node:
     def __init__(self, row, col):
         self.row = row
@@ -187,8 +188,8 @@ class AStarVisualization(QWidget):
             elapsed_time =(end_time - start_time)*1000000
 
             self.update()
-
-            self.showInfo("Pathfinding complete.\nTime taken: {:.1f} us.".format(elapsed_time))
+            global heuristic_name
+            self.showInfo("\n"+heuristic_name+"\nTime taken: {:.1f} us.".format(elapsed_time))
 
     def clearGrid(self):
         self.grid = [[Node(row, col) for col in range(MAP_COLS)] for row in range(MAP_ROWS)]
@@ -197,6 +198,8 @@ class AStarVisualization(QWidget):
         self.path = []
         self.draw_state = 0
         self.update()
+        global universal_text
+        universal_text = ""
         self.showInfo("Grid cleared.")
 
     def randomSetup(self):
@@ -262,6 +265,7 @@ class AStarVisualization(QWidget):
                 break
 
         self.update()
+
         self.showInfo("Random setup completed.\n Ready to find path.")
 
     def getNeighbors(self, node):
@@ -287,10 +291,14 @@ class AStarVisualization(QWidget):
 
     def updateHeuristic(self, index):
         # 更新所选的启发函数
+        global  heuristic_name
         if index == 0:
             self.heuristic = self.euclideanDistance
+            heuristic_name="euclideanDistance"
         elif index == 1:
             self.heuristic = self.manhattanDistance
+            heuristic_name="manhattanDistance"
+
 
     def mousePressEvent(self, event):
         if event.buttons() == Qt.LeftButton:
@@ -340,7 +348,7 @@ class AStarVisualization(QWidget):
 
     def showInfo(self, text):
         global  universal_text
-        universal_text+="\n"+text
+        universal_text +=   "\n" + text
         self.info_label.setText(universal_text)
 
 
