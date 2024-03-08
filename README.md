@@ -39,8 +39,4 @@ pip install PyQt5
 - To use different heuristic functions, select from the dropdown and click "Start".
 - You can also generate random maps to ensure solvability before finding paths.
 
-### Contact the Author
-- **Author:** Krona
-- **Email:** [927255120@qq.com]
-
 Feel free to contact the author for more information or to provide feedback.
